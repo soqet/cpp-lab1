@@ -1,9 +1,5 @@
-#include <stdlib.h>
 #include <memory.h>
-#include <string>
-#include <vector>
-#include <iostream>
-
+#include <utility>
 
 // T - value type
 // HashS - hash functor
@@ -15,7 +11,7 @@ class Linkedhs {
     }
 
     class Entry {
-    
+
         friend class Linkedhs;
         friend class iterator;
 
@@ -62,8 +58,6 @@ class Linkedhs {
     }
 
 public:
-
-    
     class iterator {
 
     friend class Linkedhs;
@@ -150,7 +144,7 @@ public:
     // copy constructor
     Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
         this->bucket = new Entry*[other.capacity]();
-        for (auto& i = other.begin(); i != other.end(); ++i) {
+        for (auto i = other.begin(); i != other.end(); ++i) {
             this->insert(*i);
         }
     }
@@ -232,9 +226,10 @@ public:
     }
 
     // returns a iterator pointing to v
-    iterator find(const T &v) const { // what if set doesnt contain v?
+    // returns end iterator if v doesnt presented in set
+    iterator find(const T &v) const {
         auto e = this->get(v);
-        if e == nullptr {
+        if (e == nullptr) {
             return iterator(this->last, nullptr);
         }
         return iterator(e->prev, e);
@@ -286,27 +281,3 @@ public:
     }
 
 };
-
-struct fHashInt {
-    size_t operator()(const int &v) {
-        return v;
-    }
-};
-
-int main() {
-    auto test = Linkedhs<int, fHashInt>(10);
-    test.insert(10);
-    test.insert(11);
-    test.insert(100);
-    auto test2 = new Linkedhs<int, fHashInt>(test);
-    test2->insert(-2);
-    test.remove(11);
-    for (auto& i = test.begin(); i != test.end(); i++) {
-        std::cout << *i << std::endl;
-    }
-    std::cout << "------------------------------" << std::endl;
-    for (auto& i = test2->begin(); i != test2->end(); ++i) {
-        std::cout << *i << std::endl;
-    }
-    return 0;
-}
