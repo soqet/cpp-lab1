@@ -4,16 +4,14 @@
 #include <vector>
 #include <iostream>
 
-template <typename T, size_t (*hashS)(const T&)> // TODO: change to functor
+
+// T - value type
+// HashS - hash functor
+template <typename T, typename HashS>
 class Linkedhs {
+
     size_t bucketIdx(const T& e) {
-        // if hashS == 0 {
-        //     return e.hash() % this.capacity;
-        // }
-        // else {
-        //     return hashS(e) % this->capacity;
-        // }
-        return hashS(e) % this->capacity;
+        return HashS()(e) % this->capacity;
     }
 
     class Entry {
@@ -64,18 +62,25 @@ class Linkedhs {
     }
 
 public:
+
+    
     class iterator {
 
     friend class Linkedhs;
+
+    Entry *prev;
+    Entry *curr;
     
     iterator(Entry *curr, Entry *prev) :
     prev(prev), curr(curr) {}
 
     public:
+        // returns the element to which it points
         T operator*() {
             return this->curr->value;
         }
 
+        // moves the iterator forward
         iterator operator++() {
             this->prev = this->curr;
             if (this->curr != nullptr) {
@@ -84,6 +89,7 @@ public:
             return *this;
         }
 
+        // moves the iterator backwards
         iterator operator--() {
             this->curr = this.prev;
             if (this->curr != nullptr) {
@@ -92,27 +98,43 @@ public:
             return *this;
         }
 
+        // moves the iterator forward
+        iterator operator++(int) {
+            auto pre = *this;
+            ++(*this);
+            return pre;
+        }
+
+        // moves the iterator backwards
+        iterator operator--(int) {
+            auto pre = *this;
+            --(*this);
+            return pre;
+        }
+
+        // check if iterator points to the same elements
         bool operator==(const iterator& other) const {
             return this->curr == other.curr;
         }
 
+        // check if iterator points to the different elements
         bool operator!=(const iterator& other) const {
             return !(*this == other);
         }
-    private:
-        Entry *prev;
-        Entry *curr;
     };
-
+    
+    // construct hash set with default capacity (100) of hash table
     Linkedhs() {
         this->capacity = 100;
         this->bucket = new Entry*[this->capacity]();
     }
 
+    // construct hash set with given capacity of hash table
     Linkedhs(size_t capacity) : capacity(capacity) {
         this->bucket = new Entry*[this->capacity]();
     }
 
+    // destructor
     ~Linkedhs() {
         delete[] this->bucket;
         if (this->first == nullptr) {
@@ -125,14 +147,15 @@ public:
         }
     }
 
-    Linkedhs(const Linkedhs<T, hashS> &other) : capacity(other.capacity) { 
+    // copy constructor
+    Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
         this->bucket = new Entry*[other.capacity]();
         for (auto& i = other.begin(); i != other.end(); ++i) {
             this->insert(*i);
         }
     }
 
-
+    // inserts element in set
     bool insert(const T e) {
         size_t h = this->bucketIdx(e);
         Entry *newEntry = new Entry(e, h);
@@ -162,6 +185,7 @@ public:
         return true;
     }
 
+    // removes element from set
     bool remove(const T &v) {
         auto entry = this->get(v);
         if (entry == nullptr) {
@@ -181,23 +205,33 @@ public:
         return true;
     }
 
-    void swap(Linkedhs &other) {
-        
+    // swaps sets between objects
+    void swap(Linkedhs<T, HashS> &other) {
+        std::swap(this->first, other.first);
+        std::swap(this->last, other.last);
+
+        std::swap(this->bucket, other.bucket);
+        std::swap(this->capacity, other.capacity);
+        std::swap(this->count, other.count);
     }
 
+    // returns number of elements in set
     size_t size() const {
         return this->count;
     }
 
+    // checks if set's size is 0
     bool empty() const {
         return this->size() == 0;
     }
 
+    // checks if set has element v
     bool contains(const T &v) const {
         auto e = this->get(v);
         return e != nullptr;
     }
 
+    // returns a iterator pointing to v
     iterator find(const T &v) const { // what if set doesnt contain v?
         auto e = this->get(v);
         if e == nullptr {
@@ -206,27 +240,37 @@ public:
         return iterator(e->prev, e);
     }
 
-    bool operator==(const Linkedhs<T, hashS> &other) const {
+    // checks if two sets contain same elements
+    bool operator==(const Linkedhs<T, HashS> &other) const {
         for (auto& i = this->begin(); i != this->end(); ++i) {
             if (!other.contains(*i)) {
+                return false;
+            }
+        }
+        for (auto& i = other.begin(); i != other.end(); ++i) {
+            if (!this->contains(*i)) {
                 return false;
             }
         }
         return true;
     }
 
-    bool operator!=(const Linkedhs<T, hashS> &other) const {
+    // checks if two sets contain different elements 
+    bool operator!=(const Linkedhs<T, HashS> &other) const {
         return !(*this == other);
     }
 
+    // returns iterator pointing to the first element
     iterator begin() const {
         return iterator(this->first, this->first->prev);
     }
 
+    // returns iterator pointing to the element after the last element
     iterator end() const {
         return iterator(nullptr, this->last);
     }
 
+    // makes the set empty
     void clear() {
         if (this->first == nullptr) {
             return;
@@ -243,19 +287,21 @@ public:
 
 };
 
-size_t hashInt(const int &a) {
-    return a;
-}
+struct fHashInt {
+    size_t operator()(const int &v) {
+        return v;
+    }
+};
 
 int main() {
-    auto test = Linkedhs<int, hashInt>(10);
+    auto test = Linkedhs<int, fHashInt>(10);
     test.insert(10);
     test.insert(11);
     test.insert(100);
-    auto test2 = new Linkedhs<int, hashInt>(test);
+    auto test2 = new Linkedhs<int, fHashInt>(test);
     test2->insert(-2);
     test.remove(11);
-    for (auto& i = test.begin(); i != test.end(); ++i) {
+    for (auto& i = test.begin(); i != test.end(); i++) {
         std::cout << *i << std::endl;
     }
     std::cout << "------------------------------" << std::endl;
