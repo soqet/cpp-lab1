@@ -6,7 +6,7 @@
 template <typename T, typename HashS>
 class Linkedhs {
 
-    size_t bucketIdx(const T& e) {
+    size_t bucketIdx(const T& e) const {
         return HashS()(e) % this->capacity;
     }
 
@@ -40,7 +40,7 @@ class Linkedhs {
     Entry *first = nullptr;
     Entry *last = nullptr;
 
-    Entry* get(const T &v) {
+    Entry* get(const T &v) const {
         auto idx = this->bucketIdx(v);
         if (this->bucket[idx] == nullptr)
             return nullptr;
@@ -48,7 +48,7 @@ class Linkedhs {
         if (curr->value == v) {
             return curr;
         }
-        while (curr->coll != nullptr) {
+        while (curr != nullptr) {
             if (curr->value == v) {
                 return curr;
             }
@@ -75,7 +75,7 @@ public:
         }
 
         // moves the iterator forward
-        iterator operator++() {
+        iterator operator++(int) {
             this->prev = this->curr;
             if (this->curr != nullptr) {
                 this->curr = this->curr->next;
@@ -84,31 +84,17 @@ public:
         }
 
         // moves the iterator backwards
-        iterator operator--() {
-            this->curr = this.prev;
+        iterator operator++() {
+            this->curr = this->prev;
             if (this->curr != nullptr) {
                 this->prev = this->curr->prev;
             }
             return *this;
         }
 
-        // moves the iterator forward
-        iterator operator++(int) {
-            auto pre = *this;
-            ++(*this);
-            return pre;
-        }
-
-        // moves the iterator backwards
-        iterator operator--(int) {
-            auto pre = *this;
-            --(*this);
-            return pre;
-        }
-
         // check if iterator points to the same elements
         bool operator==(const iterator& other) const {
-            return this->curr == other.curr;
+            return this->curr == other.curr && this->prev == other.prev;
         }
 
         // check if iterator points to the different elements
@@ -144,7 +130,7 @@ public:
     // copy constructor
     Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
         this->bucket = new Entry*[other.capacity]();
-        for (auto i = other.begin(); i != other.end(); ++i) {
+        for (auto i = other.begin(); i != other.end(); i++) {
             this->insert(*i);
         }
     }
@@ -153,18 +139,18 @@ public:
     bool insert(const T e) {
         size_t h = this->bucketIdx(e);
         Entry *newEntry = new Entry(e, h);
-        if (this->bucket[h] == NULL) {
+        if (this->bucket[h] == nullptr) {
             this->bucket[h] = newEntry;
         } else {
             auto curr = this->bucket[h];
             if (curr->value == e) {
                 return false;
             }
-            while (curr->coll != NULL) {
+            while (curr->coll != nullptr) {
                 if (curr->value == e) {
                     return false;
                 }
-                curr = this->bucket[h]->coll;
+                curr = curr->coll;
             }
             curr->coll = newEntry;
         }
@@ -181,7 +167,29 @@ public:
 
     // removes element from set
     bool remove(const T &v) {
-        auto entry = this->get(v);
+        auto idx = this->bucketIdx(v);
+        if (this->bucket[idx] == nullptr)
+            return false;
+        auto curr = this->bucket[idx];
+        Entry *entry;
+        Entry *prev;
+        if (curr->value == v) {
+            entry = curr;
+            prev = nullptr;
+        } else {
+            while (curr->coll != nullptr) {
+                if (curr->coll->value == v) {
+                    entry = curr->coll;
+                    prev = curr;
+                    break;
+                }
+                curr = curr->coll;
+            }
+            if (entry == nullptr) {
+                return false;
+            }
+        }
+        // auto entry = this->get(v);
         if (entry == nullptr) {
             return false;
         }
@@ -195,6 +203,12 @@ public:
         } else {
             this->last = entry->prev;
         }
+        if (prev != nullptr) {
+            prev->coll = entry->coll;
+        } else {
+            this->bucket[idx] = nullptr;
+        }
+        delete entry;
         this->count--;
         return true;
     }
@@ -230,19 +244,19 @@ public:
     iterator find(const T &v) const {
         auto e = this->get(v);
         if (e == nullptr) {
-            return iterator(this->last, nullptr);
+            return this->end();
         }
-        return iterator(e->prev, e);
+        return iterator(e, e->prev);
     }
 
     // checks if two sets contain same elements
     bool operator==(const Linkedhs<T, HashS> &other) const {
-        for (auto& i = this->begin(); i != this->end(); ++i) {
+        for (auto i = this->begin(); i != this->end(); i++) {
             if (!other.contains(*i)) {
                 return false;
             }
         }
-        for (auto& i = other.begin(); i != other.end(); ++i) {
+        for (auto i = other.begin(); i != other.end(); i++) {
             if (!this->contains(*i)) {
                 return false;
             }
@@ -278,6 +292,7 @@ public:
         this->first = nullptr;
         this->last = nullptr;
         memset(this->bucket, 0, this->capacity * sizeof(Entry**));
+        this->count = 0;
     }
 
 };

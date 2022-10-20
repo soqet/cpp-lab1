@@ -19,8 +19,8 @@ int main() {
     for (auto i = test.begin(); i != test.end(); i++) {
         std::cout << *i << std::endl;
     }
-    std::cout << "------------------------------" << std::endl;
-    for (auto i = test2->begin(); i != test2->end(); ++i) {
+    std::cout << std::endl;
+    for (auto i = test2->begin(); i != test2->end(); i++) {
         std::cout << *i << std::endl;
     }
     return 0;
