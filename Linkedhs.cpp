@@ -1,69 +1,95 @@
 #include <stdlib.h>
+#include <memory.h>
 #include <string>
 #include <vector>
+#include <iostream>
 
-
-// class HashStrat {
-
-// };
-
-template <typename T, size_t (*hashS)(const T&) = 0>
+template <typename T, size_t (*hashS)(const T&)> // TODO: change to functor
 class Linkedhs {
-    size_t hash(const T& e) {
-        if hashS == 0 {
-            return e.hash() % this.capacity;
-        }
-        else {
-            return hashS(e) % this->capacity;
-        }
+    size_t bucketIdx(const T& e) {
+        // if hashS == 0 {
+        //     return e.hash() % this.capacity;
+        // }
+        // else {
+        //     return hashS(e) % this->capacity;
+        // }
+        return hashS(e) % this->capacity;
     }
 
     class Entry {
-    public:
+    
+        friend class Linkedhs;
+        friend class iterator;
+
         T value;
-        long long hash;
-        bool initialized;
+        size_t hash;
 
-        Entry *next;
         Entry *prev;
+        Entry *next;
 
-        Entry *coll;
+        Entry *coll = nullptr;
 
-        Entry() {
-            this->initialized = false;
-        }
+        Entry(T value, size_t hash, Entry *prev , Entry *next) : 
+        value(value), hash(hash), prev(prev), next(next) {}
 
-        Entry(T value) {
-            this->value = value;
-            this->initialized = true;
+        Entry(T value, size_t hash) :
+        value(value), hash(hash) {
+            this->prev = nullptr;
+            this->next = nullptr;
         }
     };
+
     Entry **bucket;
     size_t capacity;
-    Entry *first;
-    Entry *last;
+    size_t count = 0;
+
+    Entry *first = nullptr;
+    Entry *last = nullptr;
+
+    Entry* get(const T &v) {
+        auto idx = this->bucketIdx(v);
+        if (this->bucket[idx] == nullptr)
+            return nullptr;
+        auto curr = this->bucket[idx];
+        if (curr->value == v) {
+            return curr;
+        }
+        while (curr->coll != nullptr) {
+            if (curr->value == v) {
+                return curr;
+            }
+            curr = curr->coll;
+        }
+        return nullptr;
+    }
 
 public:
     class iterator {
+
+    friend class Linkedhs;
+    
+    iterator(Entry *curr, Entry *prev) :
+    prev(prev), curr(curr) {}
+
     public:
         T operator*() {
-            return this->curr.value;
+            return this->curr->value;
         }
 
         iterator operator++() {
             this->prev = this->curr;
             if (this->curr != nullptr) {
-                this->curr = this->curr.next;
+                this->curr = this->curr->next;
             }
-            return this;
+            return *this;
         }
 
         iterator operator--() {
             this->curr = this.prev;
             if (this->curr != nullptr) {
-                this.prev = this.curr.prev;
+                this->prev = this->curr->prev;
             }
-            return this;
+            return *this;
         }
 
         bool operator==(const iterator& other) const {
@@ -71,75 +97,150 @@ public:
         }
 
         bool operator!=(const iterator& other) const {
-            return !(this == other);
+            return !(*this == other);
         }
     private:
-        Entry *curr;
         Entry *prev;
+        Entry *curr;
     };
 
     Linkedhs() {
-        const int capacity = 100;
-        this->bucket = new Entry*[capacity]();
-        this->capacity = capacity;
-        this->first = nullptr;
-        this->last = nullptr;
+        this->capacity = 100;
+        this->bucket = new Entry*[this->capacity]();
     }
 
-    Linkedhs(size_t capacity) {
-        this->bucket = new Entry*[capacity]();
-        this->capacity = capacity;
+    Linkedhs(size_t capacity) : capacity(capacity) {
+        this->bucket = new Entry*[this->capacity]();
     }
 
     ~Linkedhs() {
         delete[] this->bucket;
+        if (this->first == nullptr) {
+            return;
+        }
+        auto curr = this->first;
+        while (curr->next != nullptr) {
+            curr = curr->next;
+            delete curr->prev;
+        }
     }
 
-    Linkedhs(const Linkedhs &other) {}
+    Linkedhs(const Linkedhs<T, hashS> &other) : capacity(other.capacity) { 
+        this->bucket = new Entry*[other.capacity]();
+        for (auto& i = other.begin(); i != other.end(); ++i) {
+            this->insert(*i);
+        }
+    }
+
 
     bool insert(const T e) {
-        long long h = this->hash(e) % this->capacity;
-        Entry *newEntry = new Entry(e);
-        this->last->next = newEntry;
+        size_t h = this->bucketIdx(e);
+        Entry *newEntry = new Entry(e, h);
+        if (this->bucket[h] == NULL) {
+            this->bucket[h] = newEntry;
+        } else {
+            auto curr = this->bucket[h];
+            if (curr->value == e) {
+                return false;
+            }
+            while (curr->coll != NULL) {
+                if (curr->value == e) {
+                    return false;
+                }
+                curr = this->bucket[h]->coll;
+            }
+            curr->coll = newEntry;
+        }
+        if (this->last != nullptr) {
+            this->last->next = newEntry;
+        } else {
+            this->first = newEntry;
+        }
         newEntry->prev = this->last;
         this->last = newEntry;
-        if (this->bucket[h] == nullptr || !this->bucket[h]->initialized) {
-            this->bucket[h] = newEntry;
-            return true;
-        }
-        auto curr = this->bucket[h];
-        while (this->bucket[h]->coll != nullptr) {
-            curr = this->bucket[h]->coll;
-        }
-        curr->coll = newEntry;
+        this->count++;
         return true;
     }
 
-    bool remove(const T &e) {}
-
-    void swap(Linkedhs &other) {
-        // Linkedhs<T> temp;
+    bool remove(const T &v) {
+        auto entry = this->get(v);
+        if (entry == nullptr) {
+            return false;
+        }
+        if (entry->prev != nullptr) {
+            entry->prev->next = entry->next;
+        } else {
+            this->first = entry->next;
+        }
+        if (entry->next != nullptr) {
+            entry->next->prev = entry->prev;
+        } else {
+            this->last = entry->prev;
+        }
+        this->count--;
+        return true;
     }
 
-    size_t size() const;
+    void swap(Linkedhs &other) {
+        
+    }
+
+    size_t size() const {
+        return this->count;
+    }
 
     bool empty() const {
         return this->size() == 0;
     }
 
-    bool contains(const T &e) const;
-    iterator find(const T &e) const;
-
-    bool operator==(const Linkedhs &other) const;
-    bool operator!=(const Linkedhs &other) const;
-
-    iterator begin() {
-
+    bool contains(const T &v) const {
+        auto e = this->get(v);
+        return e != nullptr;
     }
 
-    iterator end() {
-        
-    } 
+    iterator find(const T &v) const { // what if set doesnt contain v?
+        auto e = this->get(v);
+        if e == nullptr {
+            return iterator(this->last, nullptr);
+        }
+        return iterator(e->prev, e);
+    }
+
+    bool operator==(const Linkedhs<T, hashS> &other) const {
+        for (auto& i = this->begin(); i != this->end(); ++i) {
+            if (!other.contains(*i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const Linkedhs<T, hashS> &other) const {
+        return !(*this == other);
+    }
+
+    iterator begin() const {
+        return iterator(this->first, this->first->prev);
+    }
+
+    iterator end() const {
+        return iterator(nullptr, this->last);
+    }
+
+    void clear() {
+        if (this->first == nullptr) {
+            return;
+        }
+        auto curr = this->first;
+        while (curr->next != nullptr) {
+            curr = curr->next;
+            delete curr->prev;
+        }
+        this->first = nullptr;
+        this->last = nullptr;
+        memset(this->bucket, 0, this->capacity * sizeof(Entry**));
+    }
+
 };
 
 size_t hashInt(const int &a) {
@@ -149,5 +250,17 @@ size_t hashInt(const int &a) {
 int main() {
     auto test = Linkedhs<int, hashInt>(10);
     test.insert(10);
+    test.insert(11);
+    test.insert(100);
+    auto test2 = new Linkedhs<int, hashInt>(test);
+    test2->insert(-2);
+    test.remove(11);
+    for (auto& i = test.begin(); i != test.end(); ++i) {
+        std::cout << *i << std::endl;
+    }
+    std::cout << "------------------------------" << std::endl;
+    for (auto& i = test2->begin(); i != test2->end(); ++i) {
+        std::cout << *i << std::endl;
+    }
     return 0;
 }
