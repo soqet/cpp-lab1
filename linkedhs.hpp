@@ -6,8 +6,12 @@
 template <typename T, typename HashS>
 class Linkedhs {
 
-    size_t bucketIdx(const T& e) const {
-        return HashS()(e) % this->capacity;
+    size_t bucketIdx(size_t h) const {
+        return h % this->capacity;
+    }
+
+    size_t hash(const T& e) const {
+        return HashS()(e);
     }
 
     class Entry {
@@ -41,15 +45,16 @@ class Linkedhs {
     Entry *last = nullptr;
 
     Entry* get(const T &v) const {
-        auto idx = this->bucketIdx(v);
+        auto h = this->hash(v);
+        auto idx = this->bucketIdx(h);
         if (this->bucket[idx] == nullptr)
             return nullptr;
         auto curr = this->bucket[idx];
-        if (curr->value == v) {
+        if (curr->hash == h) {
             return curr;
         }
         while (curr != nullptr) {
-            if (curr->value == v) {
+            if (curr->hash == h) {
                 return curr;
             }
             curr = curr->coll;
@@ -137,17 +142,18 @@ public:
 
     // inserts element in set
     bool insert(const T e) {
-        size_t h = this->bucketIdx(e);
+        auto h = this->hash(e);
+        auto bi = this->bucketIdx(h);
         Entry *newEntry = new Entry(e, h);
-        if (this->bucket[h] == nullptr) {
-            this->bucket[h] = newEntry;
+        if (this->bucket[bi] == nullptr) {
+            this->bucket[bi] = newEntry;
         } else {
-            auto curr = this->bucket[h];
-            if (curr->value == e) {
+            auto curr = this->bucket[bi];
+            if (curr->hash == h) {
                 return false;
             }
             while (curr->coll != nullptr) {
-                if (curr->value == e) {
+                if (curr->hash == h) {
                     return false;
                 }
                 curr = curr->coll;
@@ -167,18 +173,19 @@ public:
 
     // removes element from set
     bool remove(const T &v) {
-        auto idx = this->bucketIdx(v);
+        auto h = this->hash(v);
+        auto idx = this->bucketIdx(h);
         if (this->bucket[idx] == nullptr)
             return false;
         auto curr = this->bucket[idx];
-        Entry *entry;
-        Entry *prev;
-        if (curr->value == v) {
+        Entry *entry = nullptr;
+        Entry *prev = nullptr;
+        if (curr->hash == h) {
             entry = curr;
             prev = nullptr;
         } else {
             while (curr->coll != nullptr) {
-                if (curr->coll->value == v) {
+                if (curr->coll->hash == h) {
                     entry = curr->coll;
                     prev = curr;
                     break;

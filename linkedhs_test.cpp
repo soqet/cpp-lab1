@@ -4,6 +4,17 @@
 #include <vector>
 #include <algorithm>
 
+struct Student {
+    size_t age;
+    size_t name;
+};
+
+struct fHashStudent {
+    size_t operator()(const Student &v) {
+        return v.age + (v.name << 32);
+    }
+};
+
 
 struct fHashInt {
     size_t operator()(const int &v) {
@@ -160,4 +171,20 @@ TEST(base, clear) {
     }
     lhs.clear();
     EXPECT_EQ(lhs.empty(), true);
+}
+
+TEST(base, complexType) {
+    Linkedhs<Student, fHashStudent> lhs(10);
+    Student s1;
+    s1.age = 1;
+    s1.name = 10;
+    Student s2;
+    s2.age = 2;
+    s2.name = 20;
+    lhs.insert(s1);
+    EXPECT_EQ(lhs.empty(), false);
+    lhs.insert(s2);
+    EXPECT_EQ(lhs.size(), 2);
+    lhs.insert(s1);
+    EXPECT_EQ(lhs.size(), 2);
 }
