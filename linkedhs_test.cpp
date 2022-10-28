@@ -23,9 +23,10 @@ struct fHashInt {
 };
 
 
-TEST(insert, isEmpty) {
+TEST(Insert, IsEmpty) {
     Linkedhs<int, fHashInt> lhs(10);
     lhs.insert(10);
+    // CR: EXPECT_???
     EXPECT_EQ(lhs.empty(), false);
 }
 
@@ -36,6 +37,7 @@ TEST(insert, size) {
     for (auto e : elements) {
         lhs.insert(e);
         EXPECT_EQ(lhs.size(), size++);
+        // CR: contains
     }
 }
 
@@ -44,8 +46,11 @@ TEST(insert, sameElement) {
     int elements[7] = { 0, 0, 0, 0, 0, 0, 0}; 
     for (auto e : elements) {
         lhs.insert(e);
+        // CR: expect size
     }
 }
+
+// CR: resize test
 
 
 TEST(iterator, basic) {

@@ -1,11 +1,13 @@
 #include <memory.h>
 #include <utility>
 
+// CR: separate definition and declaration
+// CR: HashS = std::hash<T>
 // T - value type
 // HashS - hash functor
 template <typename T, typename HashS>
 class Linkedhs {
-
+private:
     size_t bucketIdx(size_t h) const {
         return h % this->capacity;
     }
@@ -21,20 +23,15 @@ class Linkedhs {
 
         T value;
         size_t hash;
-
+        // prev_inserted_
         Entry *prev;
+        // next_inserted_
         Entry *next;
 
+        // CR: next_
         Entry *coll = nullptr;
 
-        Entry(T value, size_t hash, Entry *prev , Entry *next) : 
-        value(value), hash(hash), prev(prev), next(next) {}
-
-        Entry(T value, size_t hash) :
-        value(value), hash(hash) {
-            this->prev = nullptr;
-            this->next = nullptr;
-        }
+        Entry(T value, size_t hash, Entry *prev = nullptr , Entry *next = nullptr) = default;
     };
 
     Entry **bucket;
@@ -67,11 +64,11 @@ public:
 
     friend class Linkedhs;
 
+    // CR: remove
     Entry *prev;
     Entry *curr;
     
-    iterator(Entry *curr, Entry *prev) :
-    prev(prev), curr(curr) {}
+    iterator(Entry *curr, Entry *prev) = default;
 
     public:
         // returns the element to which it points
@@ -110,28 +107,34 @@ public:
     
     // construct hash set with default capacity (100) of hash table
     Linkedhs() {
+        // CR: use initializer list
+        // CR: static const int DEFAULT_CAPACITY = 100;
         this->capacity = 100;
         this->bucket = new Entry*[this->capacity]();
     }
 
     // construct hash set with given capacity of hash table
+    // CR: Linkedhs(size_t capacity=DEFAULT_CAPACITY)
     Linkedhs(size_t capacity) : capacity(capacity) {
         this->bucket = new Entry*[this->capacity]();
     }
 
     // destructor
+    // CR: merge with clear
     ~Linkedhs() {
         delete[] this->bucket;
         if (this->first == nullptr) {
             return;
         }
         auto curr = this->first;
+        // CR: memory leak
         while (curr->next != nullptr) {
             curr = curr->next;
             delete curr->prev;
         }
     }
 
+    // CR: operator=?
     // copy constructor
     Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
         this->bucket = new Entry*[other.capacity]();
@@ -141,10 +144,12 @@ public:
     }
 
     // inserts element in set
-    bool insert(const T e) {
+    bool insert(const T & e) {
+        // CR: resize
         auto h = this->hash(e);
         auto bi = this->bucketIdx(h);
         Entry *newEntry = new Entry(e, h);
+        // CR: simplify
         if (this->bucket[bi] == nullptr) {
             this->bucket[bi] = newEntry;
         } else {
@@ -153,7 +158,8 @@ public:
                 return false;
             }
             while (curr->coll != nullptr) {
-                if (curr->hash == h) {
+                // CR: compare values
+                if (curr->value == newEntry->value) {
                     return false;
                 }
                 curr = curr->coll;
@@ -197,6 +203,7 @@ public:
             }
         }
         // auto entry = this->get(v);
+        // CR: simplify
         if (entry == nullptr) {
             return false;
         }
@@ -258,15 +265,13 @@ public:
 
     // checks if two sets contain same elements
     bool operator==(const Linkedhs<T, HashS> &other) const {
-        for (auto i = this->begin(); i != this->end(); i++) {
-            if (!other.contains(*i)) {
-                return false;
-            }
+        if (this->size != other.size) {
+          return false;
         }
-        for (auto i = other.begin(); i != other.end(); i++) {
-            if (!this->contains(*i)) {
-                return false;
-            }
+        for (T & element : this) {
+          if (!other.contains(element)) {
+            return false;
+          }
         }
         return true;
     }
@@ -298,6 +303,7 @@ public:
         }
         this->first = nullptr;
         this->last = nullptr;
+        // CR: replace with std::fill
         memset(this->bucket, 0, this->capacity * sizeof(Entry**));
         this->count = 0;
     }
