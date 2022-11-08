@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.18)
 project(lab1 VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,14 +19,26 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-SET(WARN_FLAGS "-Wall -pedantic")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARN_FLAGS} ${ASAN_OPTIONS}") 
+SET(WARN_FLAGS "-Wall -Wpedantic")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARN_FLAGS} ${ASAN_OPTIONS}")
 
 enable_testing()
 
 target_link_libraries(
   linkedhs_test
   GTest::gtest_main
+)
+
+target_compile_options(
+  linkedhs_test
+  PRIVATE
+  -fsanitize=address
+)
+
+target_link_options(
+  linkedhs_test
+  PRIVATE
+  -fsanitize=address
 )
 
 include(GoogleTest)

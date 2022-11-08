@@ -1,11 +1,11 @@
-#include <memory.h>
-#include <utility>
+#include <algorithm>
+
+static const int DEFAULT_CAPACITY =  100;
 
 // CR: separate definition and declaration
-// CR: HashS = std::hash<T>
 // T - value type
 // HashS - hash functor
-template <typename T, typename HashS>
+template <typename T, typename HashS = std::hash<T>>
 class Linkedhs {
 private:
     size_t bucketIdx(size_t h) const {
@@ -22,19 +22,16 @@ private:
         friend class iterator;
 
         T value;
-        size_t hash;
-        // prev_inserted_
-        Entry *prev;
-        // next_inserted_
-        Entry *next;
+        Entry *prevInserted;
+        Entry *nextInserted;
 
-        // CR: next_
-        Entry *coll = nullptr;
+        Entry *nextCollision = nullptr;
 
-        Entry(T value, size_t hash, Entry *prev = nullptr , Entry *next = nullptr) = default;
+        Entry(T value, Entry *prevInserted = nullptr, Entry *nextInserted = nullptr) :
+            value(value), prevInserted(prevInserted), nextInserted(nextInserted) {}
     };
 
-    Entry **bucket;
+    Entry **buckets;
     size_t capacity;
     size_t count = 0;
 
@@ -44,19 +41,60 @@ private:
     Entry* get(const T &v) const {
         auto h = this->hash(v);
         auto idx = this->bucketIdx(h);
-        if (this->bucket[idx] == nullptr)
+        if (this->buckets[idx] == nullptr)
             return nullptr;
-        auto curr = this->bucket[idx];
-        if (curr->hash == h) {
+        auto curr = this->buckets[idx];
+        if (curr->value == v) {
             return curr;
         }
         while (curr != nullptr) {
-            if (curr->hash == h) {
+            if (curr->value == v) {
                 return curr;
             }
-            curr = curr->coll;
+            curr = curr->nextCollision;
         }
         return nullptr;
+    }
+
+    void resize() {
+        const int maxIncrease = 1024;
+        if (this->capacity >= maxIncrease) {
+            this->capacity += maxIncrease;
+        } else {
+            this->capacity *= 2;
+        }
+        delete[] this->buckets;
+        this->buckets = new Entry*[this->capacity]();
+        if (this->first == nullptr) {
+            return;
+        }
+        auto curr = this->first; 
+        while (curr->nextInserted != nullptr) {
+            curr = curr->nextInserted;
+            this->insertEntry(curr->prevInserted);
+        }
+        this->insertEntry(curr);
+        return;
+    }
+
+    bool insertEntry(Entry *entry) {
+        auto bi = this->bucketIdx(this->hash(entry->value));
+        if (this->buckets[bi] == nullptr) {
+            this->buckets[bi] = entry;
+        } else { // if bucket has elements
+            auto curr = this->buckets[bi];
+            if (curr->value == entry->value) {
+                return false;
+            }
+            while (curr->nextCollision != nullptr) {
+                if (curr->value == entry->value) {
+                    return false;
+                }
+                curr = curr->nextCollision;
+            }
+            curr->nextCollision = entry;
+        }
+        return true;
     }
 
 public:
@@ -64,11 +102,9 @@ public:
 
     friend class Linkedhs;
 
-    // CR: remove
-    Entry *prev;
     Entry *curr;
     
-    iterator(Entry *curr, Entry *prev) = default;
+    iterator(Entry *curr) : curr(curr) {}
 
     public:
         // returns the element to which it points
@@ -78,25 +114,22 @@ public:
 
         // moves the iterator forward
         iterator operator++(int) {
-            this->prev = this->curr;
-            if (this->curr != nullptr) {
-                this->curr = this->curr->next;
-            }
-            return *this;
+            auto savedCopy = *this;
+            ++*this;
+            return savedCopy;
         }
 
-        // moves the iterator backwards
+        // moves the iterator forward
         iterator operator++() {
-            this->curr = this->prev;
             if (this->curr != nullptr) {
-                this->prev = this->curr->prev;
+                this->curr = this->curr->nextInserted;
             }
             return *this;
         }
 
         // check if iterator points to the same elements
         bool operator==(const iterator& other) const {
-            return this->curr == other.curr && this->prev == other.prev;
+            return this->curr == other.curr;
         }
 
         // check if iterator points to the different elements
@@ -104,74 +137,43 @@ public:
             return !(*this == other);
         }
     };
-    
-    // construct hash set with default capacity (100) of hash table
-    Linkedhs() {
-        // CR: use initializer list
-        // CR: static const int DEFAULT_CAPACITY = 100;
-        this->capacity = 100;
-        this->bucket = new Entry*[this->capacity]();
-    }
 
     // construct hash set with given capacity of hash table
-    // CR: Linkedhs(size_t capacity=DEFAULT_CAPACITY)
-    Linkedhs(size_t capacity) : capacity(capacity) {
-        this->bucket = new Entry*[this->capacity]();
+    Linkedhs(size_t capacity = DEFAULT_CAPACITY) : capacity(capacity) {
+        this->buckets = new Entry*[this->capacity]();
     }
 
-    // destructor
-    // CR: merge with clear
-    ~Linkedhs() {
-        delete[] this->bucket;
-        if (this->first == nullptr) {
-            return;
-        }
-        auto curr = this->first;
-        // CR: memory leak
-        while (curr->next != nullptr) {
-            curr = curr->next;
-            delete curr->prev;
-        }
-    }
-
-    // CR: operator=?
     // copy constructor
     Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
-        this->bucket = new Entry*[other.capacity]();
+        this->buckets = new Entry*[other.capacity]();
         for (auto i = other.begin(); i != other.end(); i++) {
             this->insert(*i);
         }
     }
 
+    // destructor
+    ~Linkedhs() {
+        this->clear();
+        delete[] this->buckets;
+    }
+
     // inserts element in set
     bool insert(const T & e) {
-        // CR: resize
-        auto h = this->hash(e);
-        auto bi = this->bucketIdx(h);
-        Entry *newEntry = new Entry(e, h);
-        // CR: simplify
-        if (this->bucket[bi] == nullptr) {
-            this->bucket[bi] = newEntry;
-        } else {
-            auto curr = this->bucket[bi];
-            if (curr->hash == h) {
-                return false;
-            }
-            while (curr->coll != nullptr) {
-                // CR: compare values
-                if (curr->value == newEntry->value) {
-                    return false;
-                }
-                curr = curr->coll;
-            }
-            curr->coll = newEntry;
+        const double resizeCondition = 0.75;
+        if (this->size() + 1 >= resizeCondition * this->capacity) {
+            this->resize();
         }
-        if (this->last != nullptr) {
-            this->last->next = newEntry;
+        Entry *newEntry = new Entry(e);
+        if (!this->insertEntry(newEntry)) {
+            delete newEntry;
+            return false;
+        }
+        if (this->last != nullptr) { // size > 0
+            this->last->nextInserted = newEntry;
         } else {
             this->first = newEntry;
         }
-        newEntry->prev = this->last;
+        newEntry->prevInserted = this->last;
         this->last = newEntry;
         this->count++;
         return true;
@@ -181,46 +183,45 @@ public:
     bool remove(const T &v) {
         auto h = this->hash(v);
         auto idx = this->bucketIdx(h);
-        if (this->bucket[idx] == nullptr)
+        if (this->buckets[idx] == nullptr)
             return false;
-        auto curr = this->bucket[idx];
+        auto curr = this->buckets[idx];
         Entry *entry = nullptr;
         Entry *prev = nullptr;
-        if (curr->hash == h) {
+        if (curr->value == v) {
             entry = curr;
             prev = nullptr;
         } else {
-            while (curr->coll != nullptr) {
-                if (curr->coll->hash == h) {
-                    entry = curr->coll;
+            while (curr->nextCollision != nullptr) {
+                if (curr->nextCollision->value == v) {
+                    entry = curr->nextCollision;
                     prev = curr;
                     break;
                 }
-                curr = curr->coll;
+                curr = curr->nextCollision;
             }
             if (entry == nullptr) {
                 return false;
             }
         }
-        // auto entry = this->get(v);
-        // CR: simplify
         if (entry == nullptr) {
             return false;
         }
-        if (entry->prev != nullptr) {
-            entry->prev->next = entry->next;
+        if (prev != nullptr) { // if this element have collision
+            prev->nextCollision = entry->nextCollision;
         } else {
-            this->first = entry->next;
+            this->buckets[idx] = nullptr;
         }
-        if (entry->next != nullptr) {
-            entry->next->prev = entry->prev;
+        
+        if (entry->prevInserted != nullptr) { // if not first
+            entry->prevInserted->nextInserted = entry->nextInserted;
         } else {
-            this->last = entry->prev;
+            this->first = entry->nextInserted;
         }
-        if (prev != nullptr) {
-            prev->coll = entry->coll;
+        if (entry->nextInserted != nullptr) { // if not last
+            entry->nextInserted->prevInserted = entry->prevInserted;
         } else {
-            this->bucket[idx] = nullptr;
+            this->last = entry->prevInserted;
         }
         delete entry;
         this->count--;
@@ -232,7 +233,7 @@ public:
         std::swap(this->first, other.first);
         std::swap(this->last, other.last);
 
-        std::swap(this->bucket, other.bucket);
+        std::swap(this->buckets, other.buckets);
         std::swap(this->capacity, other.capacity);
         std::swap(this->count, other.count);
     }
@@ -249,8 +250,7 @@ public:
 
     // checks if set has element v
     bool contains(const T &v) const {
-        auto e = this->get(v);
-        return e != nullptr;
+        return this->end() != this->find(v);
     }
 
     // returns a iterator pointing to v
@@ -260,18 +260,18 @@ public:
         if (e == nullptr) {
             return this->end();
         }
-        return iterator(e, e->prev);
+        return iterator(e);
     }
 
     // checks if two sets contain same elements
     bool operator==(const Linkedhs<T, HashS> &other) const {
-        if (this->size != other.size) {
-          return false;
-        }
-        for (T & element : this) {
-          if (!other.contains(element)) {
+        if (this->size() != other.size()) {
             return false;
-          }
+        }
+        for (T element : *this) {
+            if (!other.contains(element)) {
+                return false;
+            }
         }
         return true;
     }
@@ -281,14 +281,24 @@ public:
         return !(*this == other);
     }
 
+    Linkedhs<T, HashS>& operator=(const Linkedhs<T, HashS>& other) {
+        if (this == &other) {
+            return *this;
+        }
+        this->clear();
+        auto copy = Linkedhs(other);
+        this->swap(copy);
+        return *this;
+    }
+
     // returns iterator pointing to the first element
     iterator begin() const {
-        return iterator(this->first, this->first->prev);
+        return iterator(this->first);
     }
 
     // returns iterator pointing to the element after the last element
     iterator end() const {
-        return iterator(nullptr, this->last);
+        return iterator(nullptr);
     }
 
     // makes the set empty
@@ -296,16 +306,15 @@ public:
         if (this->first == nullptr) {
             return;
         }
-        auto curr = this->first;
-        while (curr->next != nullptr) {
-            curr = curr->next;
-            delete curr->prev;
+        auto curr = this->first; 
+        while (curr->nextInserted != nullptr) {
+            curr = curr->nextInserted;
+            delete curr->prevInserted;
         }
+        delete curr; 
         this->first = nullptr;
         this->last = nullptr;
-        // CR: replace with std::fill
-        memset(this->bucket, 0, this->capacity * sizeof(Entry**));
+        std::fill_n(buckets, capacity, nullptr);
         this->count = 0;
     }
-
 };

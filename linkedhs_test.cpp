@@ -7,6 +7,9 @@
 struct Student {
     size_t age;
     size_t name;
+    bool operator==(Student &other) {
+        return this->age == other.age && this->name == other.name;
+    }
 };
 
 struct fHashStudent {
@@ -24,20 +27,18 @@ struct fHashInt {
 
 
 TEST(Insert, IsEmpty) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs(10);
     lhs.insert(10);
-    // CR: EXPECT_???
-    EXPECT_EQ(lhs.empty(), false);
+    EXPECT_FALSE(lhs.empty());
 }
 
 TEST(insert, size) {
     Linkedhs<int, fHashInt> lhs(10);
     int elements[13] = { 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 };
-    int size = 1; 
-    for (auto e : elements) {
-        lhs.insert(e);
-        EXPECT_EQ(lhs.size(), size++);
-        // CR: contains
+    for (int i = 0; i < 13; i++) {
+        lhs.insert(elements[i]);
+        EXPECT_EQ(lhs.size(), i + 1);
+        EXPECT_TRUE(lhs.contains(elements[i]));
     }
 }
 
@@ -46,11 +47,19 @@ TEST(insert, sameElement) {
     int elements[7] = { 0, 0, 0, 0, 0, 0, 0}; 
     for (auto e : elements) {
         lhs.insert(e);
-        // CR: expect size
+        EXPECT_EQ(lhs.size(), 1);
     }
 }
 
-// CR: resize test
+TEST(insert, resize) {
+    Linkedhs<int, fHashInt> lhs(2);
+    std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
+    for (int i = 0; i < 13; i++) {
+        lhs.insert(v[i]);
+        EXPECT_EQ(lhs.size(), i + 1);
+        EXPECT_TRUE(lhs.contains(v[i]));
+    }
+}
 
 
 TEST(iterator, basic) {
@@ -65,10 +74,9 @@ TEST(iterator, basic) {
         ASSERT_NE(iter, lhs.end());
         EXPECT_EQ(*iter, elements[i]);
         iter++;
+        
     }
-    ASSERT_EQ(iter, lhs.end());
-    ++iter;
-    EXPECT_EQ(*iter, 9);
+    EXPECT_EQ(iter, lhs.end());
 }
 
 TEST(iterator, find) {
@@ -187,9 +195,20 @@ TEST(base, complexType) {
     s2.age = 2;
     s2.name = 20;
     lhs.insert(s1);
-    EXPECT_EQ(lhs.empty(), false);
+    EXPECT_FALSE(lhs.empty());
     lhs.insert(s2);
     EXPECT_EQ(lhs.size(), 2);
     lhs.insert(s1);
     EXPECT_EQ(lhs.size(), 2);
+}
+
+
+TEST(base, assign) {
+    Linkedhs<int> lhs1;
+    Linkedhs<int> lhs2;
+    lhs1.insert(0);
+    lhs2 = lhs1;
+    EXPECT_EQ(lhs1.size(), lhs2.size());
+    lhs1.insert(1);
+    EXPECT_NE(lhs1.size(), lhs2.size());
 }
