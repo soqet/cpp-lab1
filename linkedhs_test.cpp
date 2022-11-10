@@ -202,7 +202,6 @@ TEST(base, complexType) {
     EXPECT_EQ(lhs.size(), 2);
 }
 
-
 TEST(base, assign) {
     Linkedhs<int> lhs1;
     Linkedhs<int> lhs2;
