@@ -10,9 +10,7 @@ T Linkedhs<T, HashS>::iterator::operator*() {
 
 template <typename T, typename HashS>
 Linkedhs<T, HashS>::iterator Linkedhs<T, HashS>::iterator::operator++() {
-    if (this->curr != nullptr) {
-        this->curr = this->curr->nextInserted;
-    }
+    this->curr = this->curr->nextInserted;
     return *this;
 }
 
@@ -35,6 +33,7 @@ bool Linkedhs<T, HashS>::iterator::operator!=(const iterator& other) const {
 
 template <typename T, typename HashS>
 Linkedhs<T, HashS>::Linkedhs(size_t capacity) : capacity(capacity) { //???
+    // CR: init list
     this->buckets = new Entry*[this->capacity]();
 }
 
@@ -55,11 +54,13 @@ Linkedhs<T, HashS>::~Linkedhs() {
 
 template <typename T, typename HashS>
 bool Linkedhs<T, HashS>::insert(const T & e) {
+  // CR: make field static constexpr RESIZE_CONDITION = ...;
     const double resizeCondition = 0.75;
     if (this->size() + 1 >= resizeCondition * this->capacity) {
         this->resize();
     }
     Entry *newEntry = new Entry(e);
+    // CR: use contains
     if (!this->insertEntry(newEntry)) {
         delete newEntry;
         return false;
@@ -99,9 +100,6 @@ bool Linkedhs<T, HashS>::remove(const T &v) {
         if (entry == nullptr) {
             return false;
         }
-    }
-    if (entry == nullptr) {
-        return false;
     }
     if (prev != nullptr) { // if this element have collision
         prev->nextCollision = entry->nextCollision;
@@ -181,7 +179,6 @@ Linkedhs<T, HashS>& Linkedhs<T, HashS>::operator=(const Linkedhs<T, HashS>& othe
     if (this == &other) {
         return *this;
     }
-    this->clear();
     auto copy = Linkedhs(other);
     this->swap(copy);
     return *this;
@@ -207,7 +204,7 @@ void Linkedhs<T, HashS>::clear() {
         curr = curr->nextInserted;
         delete curr->prevInserted;
     }
-    delete curr; 
+    delete curr;
     this->first = nullptr;
     this->last = nullptr;
     std::fill_n(buckets, capacity, nullptr);

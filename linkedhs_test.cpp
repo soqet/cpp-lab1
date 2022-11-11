@@ -26,7 +26,7 @@ struct fHashInt {
 };
 
 
-TEST(Insert, IsEmpty) {
+TEST(insert, isEmpty) {
     Linkedhs<int> lhs(10);
     lhs.insert(10);
     EXPECT_FALSE(lhs.empty());

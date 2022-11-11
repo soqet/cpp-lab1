@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-static const int DEFAULT_CAPACITY =  100;
-
 // T - value type
 // HashS - hash functor
 template <typename T, typename HashS = std::hash<T>>
@@ -12,20 +10,23 @@ public:
     class iterator; 
 
     // construct hash set with given capacity of hash table
+    // CR: remove with ctor with capacity param Linkedhs(42);
     Linkedhs(size_t capacity = DEFAULT_CAPACITY);
 
     // copy constructor
+    // CR: mention that changing other Linkedhs does not influence new Linkedhs
     Linkedhs(const Linkedhs<T, HashS> &other);
 
     ~Linkedhs();
 
     // inserts element in set
+    // CR: when false returned?
     bool insert(const T & e);
 
    // removes element from set
     bool remove(const T &v);
 
-    // swaps sets between objects
+    // swaps elements between two sets
     void swap(Linkedhs<T, HashS> &other);
 
     // returns number of elements in set
@@ -37,11 +38,12 @@ public:
     // checks if set has element v
     bool contains(const T &v) const;
 
-    // returns a iterator pointing to v
-    // returns end iterator if v doesnt presented in set
+    // returns an iterator pointing to v
+    // returns end iterator if v is not present in set
     iterator find(const T &v) const;
 
     // checks if two sets contain same elements
+    // CR: mention order does not matter
     bool operator==(const Linkedhs<T, HashS> &other) const;
 
     // checks if two sets contain different elements 
@@ -50,7 +52,8 @@ public:
     // copy assignment
     Linkedhs<T, HashS>& operator=(const Linkedhs<T, HashS>& other);
 
-    // returns iterator pointing to the first element
+    // returns iterator pointing to the first inserted element
+    // CR: iterates based on insertion order
     iterator begin() const;
 
     // returns iterator pointing to the element after the last element
@@ -60,6 +63,9 @@ public:
     void clear();
 
 private:
+
+    static const int DEFAULT_CAPACITY =  100;
+
     size_t bucketIdx(size_t h) const {
         return h % this->capacity;
     }
@@ -88,29 +94,26 @@ private:
 template <typename T, typename HashS>
 class Linkedhs<T, HashS>::iterator {
 public:
-    // returns the element to which it points
     T operator*();
 
-    // moves the iterator forward
     iterator operator++();
 
-    // moves the iterator forward
     iterator operator++(int);
 
-    // check if iterator points to the same elements
+    // check if iterators point to the same element in the same Linkedhs
     bool operator==(const iterator& other) const;
 
-    // check if iterator points to the different elements
     bool operator!=(const iterator& other) const;
 
 private:
     friend class Linkedhs;
 
     Entry *curr;
-    
+    // CR: explicit
     iterator(Entry *curr) : curr(curr) {}
 };
 
+// CR: make struct, remove friends
 template <typename T, typename HashS>
 class Linkedhs<T, HashS>::Entry {
 
@@ -123,6 +126,7 @@ class Linkedhs<T, HashS>::Entry {
 
     Entry *nextCollision = nullptr;
 
-    Entry(T value, Entry *prevInserted = nullptr, Entry *nextInserted = nullptr) :
+    // CR: explicit
+    Entry(T & value, Entry *prevInserted = nullptr, Entry *nextInserted = nullptr) :
         value(value), prevInserted(prevInserted), nextInserted(nextInserted) {}
 };
