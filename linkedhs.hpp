@@ -32,13 +32,6 @@ bool Linkedhs<T, HashS>::iterator::operator!=(const iterator& other) const {
 }
 
 template <typename T, typename HashS>
-Linkedhs<T, HashS>::Linkedhs(size_t capacity) : capacity(capacity) { //???
-    // CR: init list
-    this->buckets = new Entry*[this->capacity]();
-}
-
-
-template <typename T, typename HashS>
 Linkedhs<T, HashS>::Linkedhs(const Linkedhs<T, HashS> &other) : capacity(other.capacity) { 
     this->buckets = new Entry*[other.capacity]();
     for (auto i = other.begin(); i != other.end(); i++) {
@@ -53,18 +46,15 @@ Linkedhs<T, HashS>::~Linkedhs() {
 }
 
 template <typename T, typename HashS>
-bool Linkedhs<T, HashS>::insert(const T & e) {
-  // CR: make field static constexpr RESIZE_CONDITION = ...;
-    const double resizeCondition = 0.75;
-    if (this->size() + 1 >= resizeCondition * this->capacity) {
+bool Linkedhs<T, HashS>::insert(const T& e) {
+    if (this->contains(e)) {
+        return false;
+    }
+    if (this->size() + 1 >= this->RESIZE_CONDITION * this->capacity) {
         this->resize();
     }
     Entry *newEntry = new Entry(e);
-    // CR: use contains
-    if (!this->insertEntry(newEntry)) {
-        delete newEntry;
-        return false;
-    }
+    this->insertEntry(newEntry);
     if (this->last != nullptr) { // size > 0
         this->last->nextInserted = newEntry;
     } else {
@@ -77,7 +67,7 @@ bool Linkedhs<T, HashS>::insert(const T & e) {
 }
 
 template <typename T, typename HashS>
-bool Linkedhs<T, HashS>::remove(const T &v) {
+bool Linkedhs<T, HashS>::remove(const T& v) {
     auto h = this->hash(v);
     auto idx = this->bucketIdx(h);
     if (this->buckets[idx] == nullptr)
@@ -255,6 +245,7 @@ void Linkedhs<T, HashS>::resize() {
 template <typename T, typename HashS>
 bool Linkedhs<T, HashS>::insertEntry(Entry *entry) {
     auto bi = this->bucketIdx(this->hash(entry->value));
+    entry->nextCollision = nullptr;
     if (this->buckets[bi] == nullptr) {
         this->buckets[bi] = entry;
     } else { // if bucket has elements

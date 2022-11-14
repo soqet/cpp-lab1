@@ -19,7 +19,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-SET(WARN_FLAGS "-Wall -Wpedantic")
+SET(WARN_FLAGS "-Wall -Wpedantic -Werror")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARN_FLAGS} ${ASAN_OPTIONS}")
 
 enable_testing()

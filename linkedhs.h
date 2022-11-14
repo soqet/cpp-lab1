@@ -10,20 +10,19 @@ public:
     class iterator; 
 
     // construct hash set with given capacity of hash table
-    // CR: remove with ctor with capacity param Linkedhs(42);
-    Linkedhs(size_t capacity = DEFAULT_CAPACITY);
+    Linkedhs() : buckets(new Entry*[DEFAULT_CAPACITY]()), capacity(this->DEFAULT_CAPACITY) {}
 
     // copy constructor
-    // CR: mention that changing other Linkedhs does not influence new Linkedhs
+    // returned copy is independent copy of other
     Linkedhs(const Linkedhs<T, HashS> &other);
 
     ~Linkedhs();
 
     // inserts element in set
-    // CR: when false returned?
+    // returns false if e already present in set
     bool insert(const T & e);
 
-   // removes element from set
+    // removes element from set
     bool remove(const T &v);
 
     // swaps elements between two sets
@@ -43,7 +42,7 @@ public:
     iterator find(const T &v) const;
 
     // checks if two sets contain same elements
-    // CR: mention order does not matter
+    // sets with the same elements but different order of elements are considered equal
     bool operator==(const Linkedhs<T, HashS> &other) const;
 
     // checks if two sets contain different elements 
@@ -53,7 +52,7 @@ public:
     Linkedhs<T, HashS>& operator=(const Linkedhs<T, HashS>& other);
 
     // returns iterator pointing to the first inserted element
-    // CR: iterates based on insertion order
+    // iterates based on insertion order
     iterator begin() const;
 
     // returns iterator pointing to the element after the last element
@@ -65,6 +64,7 @@ public:
 private:
 
     static const int DEFAULT_CAPACITY =  100;
+    static constexpr double RESIZE_CONDITION = 0.75;
 
     size_t bucketIdx(size_t h) const {
         return h % this->capacity;
@@ -74,7 +74,7 @@ private:
         return HashS()(e);
     }
 
-    class Entry;
+    struct Entry;
 
     Entry **buckets;
     size_t capacity;
@@ -109,16 +109,11 @@ private:
     friend class Linkedhs;
 
     Entry *curr;
-    // CR: explicit
-    iterator(Entry *curr) : curr(curr) {}
+    explicit iterator(Entry *curr) : curr(curr) {}
 };
 
-// CR: make struct, remove friends
 template <typename T, typename HashS>
-class Linkedhs<T, HashS>::Entry {
-
-    friend class Linkedhs;
-    friend class iterator;
+struct Linkedhs<T, HashS>::Entry {
 
     T value;
     Entry *prevInserted;
@@ -126,7 +121,6 @@ class Linkedhs<T, HashS>::Entry {
 
     Entry *nextCollision = nullptr;
 
-    // CR: explicit
-    Entry(T & value, Entry *prevInserted = nullptr, Entry *nextInserted = nullptr) :
+    explicit Entry(T value, Entry *prevInserted = nullptr, Entry *nextInserted = nullptr) :
         value(value), prevInserted(prevInserted), nextInserted(nextInserted) {}
 };

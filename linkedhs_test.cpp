@@ -7,7 +7,7 @@
 struct Student {
     size_t age;
     size_t name;
-    bool operator==(Student &other) {
+    bool operator==(const Student &other) {
         return this->age == other.age && this->name == other.name;
     }
 };
@@ -18,22 +18,14 @@ struct fHashStudent {
     }
 };
 
-
-struct fHashInt {
-    size_t operator()(const int &v) {
-        return v;
-    }
-};
-
-
 TEST(insert, isEmpty) {
-    Linkedhs<int> lhs(10);
+    Linkedhs<int> lhs;
     lhs.insert(10);
     EXPECT_FALSE(lhs.empty());
 }
 
 TEST(insert, size) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     int elements[13] = { 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 };
     for (int i = 0; i < 13; i++) {
         lhs.insert(elements[i]);
@@ -43,7 +35,7 @@ TEST(insert, size) {
 }
 
 TEST(insert, sameElement) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     int elements[7] = { 0, 0, 0, 0, 0, 0, 0}; 
     for (auto e : elements) {
         lhs.insert(e);
@@ -52,18 +44,21 @@ TEST(insert, sameElement) {
 }
 
 TEST(insert, resize) {
-    Linkedhs<int, fHashInt> lhs(2);
+    Linkedhs<int> lhs;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
-    for (int i = 0; i < 13; i++) {
-        lhs.insert(v[i]);
-        EXPECT_EQ(lhs.size(), i + 1);
-        EXPECT_TRUE(lhs.contains(v[i]));
+    for (int count = 0; count < 10; count++) {
+        for (unsigned int i = 0; i < v.size(); i++) {
+            auto e = v[i] + count * 10000;
+            lhs.insert(e);
+            EXPECT_EQ(lhs.size(), i + 1 + count * v.size());
+            EXPECT_TRUE(lhs.contains(e));
+        }
     }
 }
 
 
 TEST(iterator, basic) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     int elements[13] = { 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 }; 
     for (auto e : elements) {
         lhs.insert(e);
@@ -80,7 +75,7 @@ TEST(iterator, basic) {
 }
 
 TEST(iterator, find) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs.insert(e);
@@ -99,7 +94,7 @@ TEST(iterator, find) {
 }
 
 TEST(remove, first) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     lhs.insert(10);
     EXPECT_EQ(lhs.contains(10), true);
     lhs.remove(10);
@@ -107,7 +102,7 @@ TEST(remove, first) {
 }
 
 TEST(remove, advanced) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs.insert(e);
@@ -120,8 +115,8 @@ TEST(remove, advanced) {
 }
 
 TEST(base, equality) {
-    Linkedhs<int, fHashInt> lhs1(10);
-    Linkedhs<int, fHashInt> lhs2(10);
+    Linkedhs<int> lhs1;
+    Linkedhs<int> lhs2;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs1.insert(e);
@@ -134,8 +129,8 @@ TEST(base, equality) {
 }
 
 TEST(base, notEquality) {
-    Linkedhs<int, fHashInt> lhs1(10);
-    Linkedhs<int, fHashInt> lhs2(10);
+    Linkedhs<int> lhs1;
+    Linkedhs<int> lhs2;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs1.insert(e);
@@ -149,18 +144,18 @@ TEST(base, notEquality) {
 }
 
 TEST(base, copy) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs.insert(e);
     }
-    auto cpy = Linkedhs<int, fHashInt>(lhs);
+    auto cpy = Linkedhs<int>(lhs);
     EXPECT_EQ(lhs == cpy, true);
 }
 
 TEST(base, swap) {
-    Linkedhs<int, fHashInt> lhs1(10);
-    Linkedhs<int, fHashInt> lhs2(10);
+    Linkedhs<int> lhs1;
+    Linkedhs<int> lhs2;
     std::vector<int> v1({ 0, 10, 100, 11 });
     std::vector<int> v2({ 0, 10, 110, 11 });
     for (auto e : v1) {
@@ -177,7 +172,7 @@ TEST(base, swap) {
 }
 
 TEST(base, clear) {
-    Linkedhs<int, fHashInt> lhs(10);
+    Linkedhs<int> lhs;
     std::vector<int> v({ 0, 10, 100, 11, 101, 2, 3, 4, 5, 6, 7, 8, 9 });
     for (auto e : v) {
         lhs.insert(e);
@@ -187,7 +182,7 @@ TEST(base, clear) {
 }
 
 TEST(base, complexType) {
-    Linkedhs<Student, fHashStudent> lhs(10);
+    Linkedhs<Student, fHashStudent> lhs;
     Student s1;
     s1.age = 1;
     s1.name = 10;
